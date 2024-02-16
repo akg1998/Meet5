@@ -3,7 +3,13 @@ package com.project.interactionservice.model;
 import java.sql.Timestamp;
 
 
-public class VisitEvent {
+public class VisitEvent extends InteractionEvent{
+
+    private Long visitorUserId;
+    private Long visitedUserId;
+
+    private Timestamp visitTimestamp;
+
     public Long getVisitorUserId() {
         return visitorUserId;
     }
@@ -19,13 +25,6 @@ public class VisitEvent {
     public void setVisitedUserId(Long visitedUserId) {
         this.visitedUserId = visitedUserId;
     }
-
-    private Long visitorUserId;
-    private Long visitedUserId;
-
-    private Timestamp visitTimestamp;
-
-
 
     public Timestamp getVisitTimestamp() {
         return visitTimestamp;

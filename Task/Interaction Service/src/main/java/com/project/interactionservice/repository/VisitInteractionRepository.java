@@ -1,6 +1,8 @@
 package com.project.interactionservice.repository;
 
+import com.project.interactionservice.kafka.KafkaInteractionEventProducer;
 import com.project.interactionservice.kafka.KafkaUserProfileConsumer;
+import com.project.interactionservice.model.InteractionEvent;
 import com.project.interactionservice.model.UserProfile;
 import com.project.interactionservice.model.VisitEvent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,9 @@ import java.util.Map;
 public class VisitInteractionRepository {
 
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    public KafkaInteractionEventProducer kafkaInteractionEventProducer;
 
 
     @Autowired
@@ -40,8 +45,18 @@ public class VisitInteractionRepository {
     // Additional method to record visit in the database using JDBC
     public String recordVisitInDatabase(VisitEvent visitEvent) {
         UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
-        String sql = "INSERT INTO profile_visit (visitor_user_id, visited_user_id) VALUES (?, ?)";
-        int rowsAffected = jdbcTemplate.update(sql, userProfileVisitor.getUserId(), visitEvent.getVisitedUserId());
+        // Insert into interaction_event table
+        String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
+        jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "visit");
+
+        kafkaInteractionEventProducer.sendInteractionEvent(getInteractionDetails(userProfileVisitor.getUserId()));
+        // Retrieve the last generated ID
+        Long interactionEventId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+
+        // Insert into profile_visit table
+        String insertUserVisitedQuery = "INSERT INTO profile_visit (interaction_event_id, visitor_user_id, visited_user_id) VALUES (?, ?, ?)";
+        int rowsAffected = jdbcTemplate.update(insertUserVisitedQuery, interactionEventId, userProfileVisitor.getUserId(), visitEvent.getVisitedUserId());
+
         if (rowsAffected > 0) {
             UserProfile userProfileVisited = getUserProfileById(visitEvent.getVisitedUserId());
             return userProfileVisitor.getName() +" visited profile of "+ userProfileVisited.getName() +" :)";
@@ -54,5 +69,16 @@ public class VisitInteractionRepository {
         UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
         String sql = "SELECT visitor_user_id, timestamp FROM profile_visit WHERE visited_user_id = ? ORDER BY timestamp DESC";
         return jdbcTemplate.queryForList(sql, userProfileVisitor.getUserId());
+    }
+
+    public InteractionEvent getInteractionDetails(Long userId) {
+        String sql = "SELECT * FROM interaction_event WHERE user_id = ? ORDER BY event_timestamp DESC LIMIT 1";
+        return jdbcTemplate.queryForObject(sql, new Object[]{userId}, (resultSet, i) -> {
+            InteractionEvent interactionEvent = new InteractionEvent();
+            interactionEvent.setUserId(resultSet.getLong("user_id"));
+            interactionEvent.setEventType(resultSet.getString("event_type"));
+            interactionEvent.setEventTimestamp(resultSet.getTimestamp("event_timestamp").toLocalDateTime());
+            return interactionEvent;
+        });
     }
 }

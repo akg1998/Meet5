@@ -2,7 +2,7 @@ package com.project.interactionservice.model;
 
 import java.time.LocalDateTime;
 
-public class LikeEvent {
+public class LikeEvent extends InteractionEvent{
     private Long likeId;
     private Long likerUserId;
     private Long likedUserId;
