@@ -7,10 +7,10 @@ import com.project.interactionservice.service.VisitInteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -24,6 +24,12 @@ public class InteractionController {
     @PostMapping("/visit")
     public ResponseEntity<String> visitUserProfile(@RequestBody VisitEvent visitEvent) {
         return new ResponseEntity<>(visitInteractionService.visitedUser(visitEvent), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/visitedUsers")
+    public ResponseEntity<List<Map<String, Object>>> getProfileVisitors() {
+        List<Map<String, Object>> result = visitInteractionService.getProfileVisitors();
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @PostMapping("/like")

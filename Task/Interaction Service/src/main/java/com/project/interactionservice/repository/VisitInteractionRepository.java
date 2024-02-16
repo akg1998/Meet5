@@ -7,7 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 @Repository
 public class VisitInteractionRepository {
 
@@ -46,16 +50,9 @@ public class VisitInteractionRepository {
         }
     }
 
-    // Method to retrieve visits in descending order of timestamps
-    public List<VisitEvent> getVisitsForUser(String userId) {
-        String sql = "SELECT * FROM profile_visit WHERE visited_user_id = ? ORDER BY visit_timestamp DESC";
-        return jdbcTemplate.query(sql, new Object[]{userId}, (resultSet, i) -> {
-            VisitEvent visitEvent = new VisitEvent();
-            visitEvent.setVisitorUserId(resultSet.getLong("visitor_user_id"));
-            visitEvent.setVisitedUserId(resultSet.getLong("visited_user_id"));
-            visitEvent.setVisitTimestamp(resultSet.getTimestamp("visit_timestamp"));
-            // Other fields as needed...
-            return visitEvent;
-        });
+    public List<Map<String, Object>> getProfileVisitors() {
+        UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
+        String sql = "SELECT visitor_user_id, timestamp FROM profile_visit WHERE visited_user_id = ? ORDER BY timestamp DESC";
+        return jdbcTemplate.queryForList(sql, userProfileVisitor.getUserId());
     }
 }
