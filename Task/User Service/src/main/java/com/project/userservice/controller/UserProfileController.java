@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class UserProfileController {
@@ -41,5 +42,13 @@ public class UserProfileController {
     @GetMapping("/allUsers")
     public List<UserProfile> getAllUsers(){
         return userProfileService.getAllUsers();
+    }
+
+    @PostMapping("/bulkDataInsertionOfUsers")
+    public  ResponseEntity<Map<String, Object>> addBatchOfUsers(@RequestBody List<UserProfile> userProfiles) {
+        Map<String, Object> response = userProfileService.addBatchOfUsers(userProfiles);
+
+        // Return the response with HTTP status OK
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

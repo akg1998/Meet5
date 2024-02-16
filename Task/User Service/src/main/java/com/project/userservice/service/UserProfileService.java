@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserProfileService {
@@ -22,5 +23,9 @@ public class UserProfileService {
 
     public List<UserProfile> getAllUsers(){
         return userProfileRepository.getAllUsers();
+    }
+
+    public Map<String, Object> addBatchOfUsers(List<UserProfile> userProfiles){
+        return userProfileRepository.addUsers(userProfiles);
     }
 }
