@@ -34,7 +34,7 @@ public class VisitInteractionService {
                 String visitorName = userProfile.getName();
 
                 // Add visitorUserId, visitorName, and timestamp to the result map
-                row.put("Visited User Name", visitorName);
+                row.put("User who visited you profile called as", visitorName);
                 row.put("Timestamp", (Timestamp) row.get("timestamp"));
 
                 result.add(row);
