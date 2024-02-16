@@ -6,17 +6,17 @@ import lombok.Setter;
 
 public class UserProfile {
 
-    private Long userId;
+    private Long user_id;
     private String name;
     private int age;
     private String gender;
 
     public Long getUserId() {
-        return userId;
+        return user_id;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUserId(Long user_id) {
+        this.user_id = user_id;
     }
 
     public String getName() {

@@ -16,8 +16,8 @@ public class UserProfileService {
     public UserProfile addUser(UserProfile userProfile) {
         return userProfileRepository.addUser(userProfile);
     }
-    public List<UserProfile> getUserById(Long userId){
-        return userProfileRepository.executeCustomQuery();
+    public UserProfile getUserById(Long userId){
+        return userProfileRepository.executeCustomQuery(userId);
     }
 
     public List<UserProfile> getAllUsers(){

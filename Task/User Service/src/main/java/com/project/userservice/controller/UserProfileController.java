@@ -1,5 +1,6 @@
 package com.project.userservice.controller;
 
+import com.project.userservice.kafka.KafkaUserProfileProducer;
 import com.project.userservice.model.UserProfile;
 import com.project.userservice.service.UserProfileService;
 import lombok.Getter;
@@ -16,6 +17,9 @@ public class UserProfileController {
     @Autowired
     private UserProfileService userProfileService;
 
+    @Autowired
+    private KafkaUserProfileProducer kafkaUserProfileProducer;
+
     @PostMapping("/createUser")
     public ResponseEntity<UserProfile> addUserProfile(@RequestBody UserProfile userProfile) {
         UserProfile addedUserProfile = userProfileService.addUser(userProfile);
@@ -27,8 +31,11 @@ public class UserProfileController {
         }
     }
     @GetMapping("/user/{userId}")
-    public List<UserProfile> getUser(@PathVariable Long userId) {
-        return userProfileService.getUserById(userId);
+    public UserProfile getUser(@PathVariable Long userId) {
+        UserProfile userProfileResponse = userProfileService.getUserById(userId);
+        // Produce UserProfile event to Kafka
+        kafkaUserProfileProducer.sendUserProfileEvent(userProfileResponse);
+        return userProfileResponse;
     }
 
     @GetMapping("/allUsers")

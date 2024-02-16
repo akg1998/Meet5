@@ -2,6 +2,7 @@ package com.project.userservice.repository;
 
 import com.project.userservice.model.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -30,12 +31,17 @@ public class UserProfileRepository {
             return null; // Insertion failed
         }
     }
-    public List<UserProfile> executeCustomQuery() {
-        // Example raw SQL query
-        String sqlQuery = "SELECT * FROM user_profiles";
+    public UserProfile executeCustomQuery(Long userId) {
+        // Example raw SQL query with a placeholder for userId
+        String sqlQuery = "SELECT * FROM user_profiles WHERE user_id = ?";
 
-        // Execute the query and map the results to User objects
-        return jdbcTemplate.query(sqlQuery, new BeanPropertyRowMapper<>(UserProfile.class));
+        try {
+            // Execute the query and map the result to a single UserProfile object
+            return jdbcTemplate.queryForObject(sqlQuery, new Object[]{userId}, new BeanPropertyRowMapper<>(UserProfile.class));
+        } catch (EmptyResultDataAccessException e) {
+            // Handle the case where no results were found
+            return null; // Or throw an exception or handle it based on your requirements
+        }
     }
 
     public List<UserProfile> getAllUsers() {
