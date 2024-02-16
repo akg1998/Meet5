@@ -41,6 +41,9 @@ public class LikeInteractionRepository {
     public String recordLikeInDatabase(LikeEvent likeEvent) {
         UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
 
+        if(userProfileVisitor == null){
+            return "Error occurred, No data found about user. Please provide particular user id by calling user id API request.";
+        }
         // Insert into interaction_event table
         String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
         jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "like");
