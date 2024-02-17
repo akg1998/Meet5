@@ -1,3 +1,11 @@
+CREATE TABLE interaction_event (
+    event_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    event_type VARCHAR(255) NOT NULL,
+    event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_profiles(user_id)
+);
+
 CREATE TABLE profile_visit (
     visit_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     interaction_event_id BIGINT NOT NULL,
@@ -20,10 +28,3 @@ CREATE TABLE user_like (
     FOREIGN KEY (liked_user_id) REFERENCES user_profiles(user_id)
 );
 
-CREATE TABLE interaction_event (
-    event_id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL,
-    event_type VARCHAR(255) NOT NULL,
-    event_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES user_profiles(user_id)
-);

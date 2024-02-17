@@ -43,35 +43,69 @@ public class VisitInteractionRepository {
     }
 
     // Additional method to record visit in the database using JDBC
-    public String recordVisitInDatabase(VisitEvent visitEvent) {
-        UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
-        if(userProfileVisitor == null){
-            return "Error occurred, No data found about user. Please provide particular user id by calling user id API request.";
+    public List<Map<String, Object>> recordVisitInDatabase(VisitEvent visitEvent) {
+        List<Map<String, Object>> responseList = new ArrayList<>();
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
+
+            if (userProfileVisitor == null) {
+                // Create a response for when data is not available
+                response.put("message", "Error occurred, No data found about user. Please use /user/{userid} get api request to fetch user in Kafka Queue");
+                responseList.add(response);
+                return responseList;
+            }
+            // Insert into interaction_event table
+            String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
+            jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "visit");
+
+            kafkaInteractionEventProducer.sendInteractionEvent(getInteractionDetails(userProfileVisitor.getUserId()));
+            // Retrieve the last generated ID
+            Long interactionEventId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+
+            // Insert into profile_visit table
+            String insertUserVisitedQuery = "INSERT INTO profile_visit (interaction_event_id, visitor_user_id, visited_user_id) VALUES (?, ?, ?)";
+            int rowsAffected = jdbcTemplate.update(insertUserVisitedQuery, interactionEventId, userProfileVisitor.getUserId(), visitEvent.getVisitedUserId());
+
+            if (rowsAffected > 0) {
+                UserProfile userProfileVisited = getUserProfileById(visitEvent.getVisitedUserId());
+                response.put("message", userProfileVisitor.getName() + " visited profile of " + userProfileVisited.getName() + " :)");
+                responseList.add(response);
+                return responseList;
+            } else {
+                response.put("message", "Failed to record the visit.");
+                responseList.add(response);
+                return responseList;
+            }
         }
-        // Insert into interaction_event table
-        String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
-        jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "visit");
-
-        kafkaInteractionEventProducer.sendInteractionEvent(getInteractionDetails(userProfileVisitor.getUserId()));
-        // Retrieve the last generated ID
-        Long interactionEventId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
-
-        // Insert into profile_visit table
-        String insertUserVisitedQuery = "INSERT INTO profile_visit (interaction_event_id, visitor_user_id, visited_user_id) VALUES (?, ?, ?)";
-        int rowsAffected = jdbcTemplate.update(insertUserVisitedQuery, interactionEventId, userProfileVisitor.getUserId(), visitEvent.getVisitedUserId());
-
-        if (rowsAffected > 0) {
-            UserProfile userProfileVisited = getUserProfileById(visitEvent.getVisitedUserId());
-            return userProfileVisitor.getName() +" visited profile of "+ userProfileVisited.getName() +" :)";
-        } else {
-            return "Failed to record the visit.";
+        catch (Exception e)
+        {
+            response.put("message", "Failed to record the visit with exception. "+e);
+            responseList.add(response);
+            return responseList;
         }
     }
 
     public List<Map<String, Object>> getProfileVisitors() {
-        UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
-        String sql = "SELECT visitor_user_id, timestamp FROM profile_visit WHERE visited_user_id = ? ORDER BY timestamp DESC";
-        return jdbcTemplate.queryForList(sql, userProfileVisitor.getUserId());
+        Map<String, Object> response = new HashMap<>();
+        List<Map<String, Object>> responseList = new ArrayList<>();
+        try {
+            UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
+
+            if (userProfileVisitor == null) {
+                response.put("message", "Error occurred, No data found about user. Please use /user/{userid} get api request to fetch user in Kafka Queue");
+                responseList.add(response);
+                return responseList;
+            }
+            String sql = "SELECT visitor_user_id, timestamp FROM profile_visit WHERE visited_user_id = ? ORDER BY timestamp DESC";
+            return jdbcTemplate.queryForList(sql, userProfileVisitor.getUserId());
+        }
+        catch(Exception e){
+            response.put("message", "Failed to retrieve visitors with exception. "+e);
+            responseList.add(response);
+            return responseList;
+        }
     }
 
     public InteractionEvent getInteractionDetails(Long userId) {

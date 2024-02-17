@@ -13,6 +13,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,30 +40,45 @@ public class LikeInteractionRepository {
         });
     }
 
-    public String recordLikeInDatabase(LikeEvent likeEvent) {
-        UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
+    public List<Map<String, Object>> recordLikeInDatabase(LikeEvent likeEvent) {
+        Map<String, Object> response = new HashMap<>();
+        List<Map<String, Object>> responseList = new ArrayList<>();
 
-        if(userProfileVisitor == null){
-            return "Error occurred, No data found about user. Please provide particular user id by calling user id API request.";
+        try {
+            UserProfile userProfileVisitor = KafkaUserProfileConsumer.processUserProfile();
+            if (userProfileVisitor == null) {
+                response.put("message", "Error occurred, No data found about user. Please use /user/{userid} get api request to fetch user in Kafka Queue\"");
+                responseList.add(response);
+                return responseList;
+            }
+            // Insert into interaction_event table
+            String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
+            jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "like");
+
+            kafkaInteractionEventProducer.sendInteractionEvent(getInteractionDetails(userProfileVisitor.getUserId()));
+
+            // Retrieve the last generated ID
+            Long interactionEventId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
+
+            // Insert into user_like table
+            String insertUserLikeQuery = "INSERT INTO user_like (interaction_event_id, liker_user_id, liked_user_id) VALUES (?, ?, ?)";
+            int rowsAffected = jdbcTemplate.update(insertUserLikeQuery, interactionEventId, userProfileVisitor.getUserId(), likeEvent.getLikedUserId());
+
+            if (rowsAffected > 0) {
+                UserProfile userProfileLiked = getUserProfileById(likeEvent.getLikedUserId());
+                response.put("message", userProfileVisitor.getName() + " liked profile of " + userProfileLiked.getName() + " :)");
+                responseList.add(response);
+                return responseList;
+            } else {
+                response.put("message", "Failed to record the visit.");
+                responseList.add(response);
+                return responseList;
+            }
         }
-        // Insert into interaction_event table
-        String insertInteractionEventQuery = "INSERT INTO interaction_event (user_id, event_type, event_timestamp) VALUES (?, ?, NOW())";
-        jdbcTemplate.update(insertInteractionEventQuery, userProfileVisitor.getUserId(), "like");
-
-        kafkaInteractionEventProducer.sendInteractionEvent(getInteractionDetails(userProfileVisitor.getUserId()));
-
-        // Retrieve the last generated ID
-        Long interactionEventId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
-
-        // Insert into user_like table
-        String insertUserLikeQuery = "INSERT INTO user_like (interaction_event_id, liker_user_id, liked_user_id) VALUES (?, ?, ?)";
-        int rowsAffected = jdbcTemplate.update(insertUserLikeQuery, interactionEventId, userProfileVisitor.getUserId(), likeEvent.getLikedUserId());
-
-        if (rowsAffected > 0) {
-            UserProfile userProfileLiked = getUserProfileById(likeEvent.getLikedUserId());
-            return userProfileVisitor.getName() +" liked profile of "+ userProfileLiked.getName() +" :)";
-        } else {
-            return "Failed to record the visit.";
+        catch (Exception e){
+            response.put("message", "Failed to record like with exception. "+e);
+            responseList.add(response);
+            return responseList;
         }
     }
 

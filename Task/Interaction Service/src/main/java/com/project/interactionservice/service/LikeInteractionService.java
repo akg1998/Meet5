@@ -7,6 +7,9 @@ import com.project.interactionservice.repository.LikeInteractionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class LikeInteractionService {
 
@@ -14,8 +17,7 @@ public class LikeInteractionService {
     public LikeInteractionRepository likeInteractionRepository;
 
 
-    public String likedUser(LikeEvent likeEvent) {
-
+    public List<Map<String, Object>> likedUser(LikeEvent likeEvent) {
         return likeInteractionRepository.recordLikeInDatabase(likeEvent);
     }
 }

@@ -22,8 +22,9 @@ public class InteractionController {
     private LikeInteractionService likeInteractionService;
 
     @PostMapping("/visit")
-    public ResponseEntity<String> visitUserProfile(@RequestBody VisitEvent visitEvent) {
-        return new ResponseEntity<>(visitInteractionService.visitedUser(visitEvent), HttpStatus.CREATED);
+    public ResponseEntity<List<Map<String, Object>>> visitUserProfile(@RequestBody VisitEvent visitEvent) {
+        List<Map<String, Object>> result = visitInteractionService.visitedUser(visitEvent);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @GetMapping("/visitedUsers")
@@ -33,8 +34,8 @@ public class InteractionController {
     }
 
     @PostMapping("/like")
-    public ResponseEntity<String> likeUser(@RequestBody LikeEvent likeEvent) {
-        String result = likeInteractionService.likedUser(likeEvent);
+    public ResponseEntity<List<Map<String, Object>>> likeUser(@RequestBody LikeEvent likeEvent) {
+        List<Map<String, Object>> result = likeInteractionService.likedUser(likeEvent);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 }
