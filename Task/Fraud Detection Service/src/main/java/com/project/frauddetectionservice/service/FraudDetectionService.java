@@ -18,6 +18,9 @@ public class FraudDetectionService {
     @Value("${fraud.threshold.visits}")
     private int visitThreshold;
 
+    @Value("${fraud.threshold.duration}")
+    private int timeDuration;
+
     @Autowired
     private FraudDetectionRepository fraudDetectionRepository;
 
@@ -39,12 +42,11 @@ public class FraudDetectionService {
 
     private void handleVisit(Long userId, LocalDateTime currentTimestamp) {
 
-        // Additional logic for handling visits if needed
         if (lastInteractionTimestamps.containsKey(userId)) {
             LocalDateTime lastVisitTimestamp = lastInteractionTimestamps.get(userId);
             long minutesSinceLastVisit = java.time.Duration.between(lastVisitTimestamp, currentTimestamp).toMinutes();
 
-            if (minutesSinceLastVisit <= 10) {
+            if (minutesSinceLastVisit <= timeDuration) {
                 // Potential fraudulent activity
                 if (getVisitCount(userId) >= visitThreshold) {
                     // Handle fraudulent activity
@@ -82,12 +84,12 @@ public class FraudDetectionService {
     }
 
     private void handleFraudulentVisited(Long userId) {
-        // Logic to handle fraudulent likes, e.g., flagging the user, sending notifications, etc.
-        System.out.println("ALERT !!! Fraudulent activity detected: User " + userId + " visited more than 100 profiles within a 10 minutes.");
+        // Logic to handle fraudulent visits, e.g., flagging the user, sending notifications, etc.
+        System.out.println("ALERT !!! Fraudulent activity detected: User " + userId + " visited "+visitThreshold+" profiles within a "+timeDuration+" minutes.");
     }
 
     private void handleFraudulentLike(Long userId) {
         // Logic to handle fraudulent likes, e.g., flagging the user, sending notifications, etc.
-        System.out.println("ALERT !!! Fraudulent activity detected: User " + userId + " liked more than 100 profiles within a 10 minutes.");
+        System.out.println("ALERT !!! Fraudulent activity detected: User " + userId + " liked more than "+likeThreshold+" profiles within a "+timeDuration+" minutes.");
     }
 }
